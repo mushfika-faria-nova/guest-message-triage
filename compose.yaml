@@ -1,0 +1,23 @@
+# Local Postgres for development and tests. Start: docker compose up -d
+services:
+  db:
+    image: postgres:18
+    environment:
+      # Local-only credentials. In production these come from a secret store.
+      POSTGRES_USER: triage
+      POSTGRES_PASSWORD: triage
+      POSTGRES_DB: triage
+    ports:
+      # 127.0.0.1 only: reachable from this machine, not the network.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # Postgres 18 keeps data under /var/lib/postgresql/18/docker, so the
+      # volume is mounted one level up (17 and older used .../data).
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U triage -d triage"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:
