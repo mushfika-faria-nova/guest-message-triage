@@ -13,9 +13,16 @@ To change a decision, don't edit its row. Add a new row that replaces it, and ma
 | 5 | Internet problems had no category, and they are a common rental complaint | Add an `internet` category | Wifi problems are not pushed into `other` | Leave them in `other`: hides a frequent kind of problem | One more value to label in the eval set | Accepted |
 | 6 | The flag `needs_human` was easy to read as "a person must fix this" | Rename it to `needs_review`: a person must read the original message | The name says what to do. Claude reads field names too, so a clear name helps the model | `unclear`: says why, but not what to do | None | Accepted |
 | 7 | Claude returned no tickets and no review for "hi", so the message would be lost | A rule in code: no tickets means `needs_review` is true, whatever the model said | The rule always holds and has a test | Fix it in the prompt only: works most of the time, but a prompt is not a guarantee | Messages like "thanks" also go to a person | Accepted |
+| 8 | What to store | Two tables: `messages` (with the original text) and `tickets`, linked by `message_id` | A person handling `needs_review` can read the original. One message, many tickets (decision 4) fits a foreign key | Tickets only: smaller, but the original text is lost. One table with JSON tickets: harder to query by category or urgency | The guest's text is stored, so it is personal data in a real system | Accepted |
+| 9 | When to save | After Claude answers, message and tickets in one transaction | Never a message without its tickets | Save the message first, then update it: two writes, and a half-finished row if Claude fails | If Claude fails, the message is not saved (phase 5 changes this) | Accepted |
+| 10 | Column type for `category` and `urgency` | Plain text; Pydantic checks the values | A new category needs no migration | A Postgres enum: the database checks the values too, but every new value needs a migration | Bad values written outside the API are not stopped by the database | Accepted |
+| 11 | How to test saving | A real Postgres test database (`triage_test`), Claude faked | The test proves rows land, with the foreign key and NOT NULL rules | A fake session: only proves `add()` was called. SQLite: different SQL dialect | Tests need Docker running | Accepted |
 
 ## Details for developers
 
 - **3.** To change it later, add an exception handler for `RequestValidationError`.
 - **4.** The reply is `TriageResult(tickets: list[Ticket], needs_review: bool)`. Structured outputs need an object at the top level, so the list is wrapped. The list is empty when there is nothing to act on ("hi").
 - **7.** In `triage()` after the model call. Proven by `tests/test_triage.py::test_no_tickets_always_goes_to_review`, which fails when the rule is removed.
+- **8.** Models in `src/guest_message_triage/db.py`, schema in `migrations/versions/`. Postgres doesn't index foreign keys on its own, so `tickets.message_id` has an index.
+- **9.** `save_triage()` in `db.py` adds the message with its tickets and commits once. One session per request comes from the `get_session` dependency.
+- **11.** `tests/conftest.py` builds the tables with `create_all` and empties them after each test. `TEST_DATABASE_URL` can point the tests at another database (CI). `test_message_and_tickets_are_saved` fails when the save call is removed.

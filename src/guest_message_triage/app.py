@@ -6,8 +6,11 @@ from typing import Annotated
 import anthropic
 from fastapi import Depends, FastAPI
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
+from guest_message_triage.db import get_session, save_triage
 from guest_message_triage.triage import TriageResult, triage
+
 
 app = FastAPI(title="guest-message-triage")
 
@@ -38,5 +41,8 @@ def health() -> dict[str, str]:
 def create_message(
     msg: MessageIn,
     client: Annotated[anthropic.Anthropic, Depends(get_client)],
+    session: Annotated[Session, Depends(get_session)],
 ) -> TriageResult:
-    return triage(client, msg.text)
+    result = triage(client, msg.text)
+    save_triage(session, msg.text, msg.sender, result)
+    return result
