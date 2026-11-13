@@ -1,0 +1,24 @@
+[project]
+name = "guest-message-triage"
+version = "0.1.0"
+description = "Turns guest and cleaner messages into structured maintenance tickets using Claude"
+readme = "README.md"
+authors = [
+    { name = "Mushfika Faria Nova", email = "mushfika.faria.nova@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=2.8.0",
+    "fastapi>=0.162.5",
+    "uvicorn>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.8,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.16.0",
+    "pytest>=9.2.0",
+]
