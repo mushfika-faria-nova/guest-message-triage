@@ -25,7 +25,7 @@ Tests: `uv run pytest`
 ## Plan
 
 - Claude structured output: the reply must match a Pydantic model
-- Unclear messages go to "needs a human" instead of a guess
+- One ticket per problem; unclear messages are marked for a person to review instead of a guess
 - Save tickets in Postgres
 - An eval set of labelled synthetic messages, with accuracy per field
 - Cost per message, comparing models
