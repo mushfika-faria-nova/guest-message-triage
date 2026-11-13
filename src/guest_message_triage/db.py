@@ -1,9 +1,15 @@
 """Database tables. SQLAlchemy 2.0 typed models, like JPA @Entity classes."""
 
+import os
+from collections.abc import Iterator
 from datetime import datetime
+from functools import lru_cache
 
-from sqlalchemy import DateTime, ForeignKey, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import DateTime, ForeignKey, create_engine, func
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
+
+from guest_message_triage.triage import TriageResult
 
 
 class Base(DeclarativeBase):
@@ -37,3 +43,31 @@ class TicketRow(Base):
     next_action: Mapped[str]
 
     message: Mapped[MessageRow] = relationship(back_populates="tickets")
+
+
+# One engine (connection pool) for the whole app, like a DataSource bean.
+# pool_pre_ping checks a connection before using it, so a DB restart doesn't
+# break the next request.
+@lru_cache
+def get_engine() -> Engine:
+    return create_engine(os.environ["DATABASE_URL"], pool_pre_ping=True)
+
+
+# One session per request, closed when the request ends: the request-scoped
+# EntityManager. yield hands it to the endpoint; the with-block closes it after.
+def get_session() -> Iterator[Session]:
+    with Session(get_engine()) as session:
+        yield session
+
+
+def save_triage(session: Session, text: str, sender: str | None, result: TriageResult) -> MessageRow:
+    """Save the message and its tickets in one transaction."""
+    row = MessageRow(
+        text=text,
+        sender=sender,
+        needs_review=result.needs_review,
+        tickets=[TicketRow(**t.model_dump()) for t in result.tickets],
+    )
+    session.add(row)
+    session.commit()
+    return row
