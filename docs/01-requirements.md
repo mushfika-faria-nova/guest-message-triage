@@ -17,6 +17,7 @@ Guests and cleaners report problems in free text, in any form: "AC leaking in 4,
 | R-5 | Record tokens and cost for every message | test on the usage log | 4 |
 | R-6 | Triage a file of hundreds of messages in one run, with the total cost of the run | run on a synthetic CSV, results matched to inputs | 6 |
 | R-7 | Check the unit and the booking before setting urgency (e.g. a guest arriving today makes it more urgent) | eval cases that need the booking to get urgency right | 6 |
+| R-8 | Never lose a message: if Claude fails (cut off, refused, invalid reply, down, rate-limited, bad key, spend limit), save the message for review and return 200 | `tests/test_triage.py` (2 tests), `tests/test_app.py::test_claude_failure_saves_message_for_review` (4 cases) | 5 |
 
 ## Limits
 - Python 3.12, FastAPI, Pydantic, Anthropic Python SDK

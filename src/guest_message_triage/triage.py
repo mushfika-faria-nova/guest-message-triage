@@ -3,13 +3,15 @@
 No HTTP here: the API (app.py) and later the bulk mode both call triage().
 """
 
+import logging
 from typing import Literal
 
 import anthropic
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 # Haiku: the cheapest current model. The eval (phase 4) decides if it is good enough.
 MODEL = "claude-haiku-5-5"
+logger = logging.getLogger(__name__)
 
 # Rules that apply to every message. Urgency is written as checkable conditions,
 # not "use your judgement", so the eval can tell when the model breaks them.
@@ -52,19 +54,36 @@ def triage(client: anthropic.Anthropic, text: str) -> TriageResult:
 
     The client is passed in, not created here, so tests can pass a fake one.
     """
-    # parse() sends TriageResult as a JSON schema and validates the reply back into it.
-    response = client.messages.parse(
-        model=MODEL,
-        # Haiku thinks before answering and thinking counts toward this limit,
-        # so it is set well above the size of the answer itself.
-        max_tokens=2000,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": text}],
-        output_format=TriageResult,
-    )
+    try:
+        # parse() sends TriageResult as a JSON schema and validates the reply back into it.
+        response = client.messages.parse(
+            model=MODEL,
+            # Haiku thinks before answering and thinking counts toward this limit,
+            # so it is set well above the size of the answer itself.
+            max_tokens=2000,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": text}],
+            output_format=TriageResult,
+        )
+    except ValidationError:
+        # parse() validates inside the call, so a reply cut off at max_tokens
+        # (or otherwise not matching TriageResult) raises here.
+        logger.warning("Claude reply did not match TriageResult; sending to review")
+        return review_only()
+
     result = response.parsed_output
+    # Anything other than a normal finish (refusal, max_tokens) is not trusted.
+    if response.stop_reason != "end_turn" or result is None:
+        logger.warning("Claude stopped with %s; sending to review", response.stop_reason)
+        return review_only()
+
     # A message with no tickets must still reach a person, whatever the model said
     # (decision 7). Rules that must always hold live in code, not in the prompt.
     if not result.tickets:
-        result.needs_review = True
+        return review_only()
     return result
+
+
+def review_only() -> TriageResult:
+    """No tickets; a person reads the original message."""
+    return TriageResult(tickets=[], needs_review=True)

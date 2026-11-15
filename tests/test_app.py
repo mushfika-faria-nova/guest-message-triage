@@ -1,9 +1,10 @@
+import anthropic
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from fakes import FakeClient
+from fakes import FakeClient, api_error, connection_error
 
 from guest_message_triage.app import app, get_client
 from guest_message_triage.db import MessageRow, get_session
@@ -34,6 +35,8 @@ def fake():
 @pytest.fixture(autouse=True)
 def test_db(session):
     app.dependency_overrides[get_session] = lambda: session
+    yield
+    app.dependency_overrides.clear()
 
 
 client = TestClient(app)
@@ -81,3 +84,39 @@ def test_invalid_message_is_not_saved(fake, engine):
 
     with Session(engine) as check:
         assert check.scalars(select(MessageRow)).all() == []
+
+
+# Every way Claude can fail: the message is still saved, and goes to a person.
+@pytest.mark.parametrize(
+    "error",
+    [
+        connection_error(),
+        api_error(anthropic.InternalServerError, 500),
+        api_error(anthropic.EnforcedSpendLimitReachedError, 429),
+        api_error(anthropic.AuthenticationError, 401),
+    ],
+)
+def test_claude_failure_saves_message_for_review(error, engine):
+    fake_client = FakeClient(error=error)
+    app.dependency_overrides[get_client] = lambda: fake_client
+
+    r = client.post("/messages", json={"text": "AC in unit 4 is leaking"})
+
+    assert r.status_code == 200
+    assert r.json() == {"tickets": [], "needs_review": True}
+    with Session(engine) as check:
+        row = check.scalars(select(MessageRow)).one()
+        assert row.needs_review is True
+        assert row.tickets == []
+
+
+def test_spend_limit_is_logged_as_error_not_as_temporary(caplog):
+    # EnforcedSpendLimitReachedError is a RateLimitError, but it doesn't clear by itself,
+    # so it must not be logged as a temporary warning.
+    error = api_error(anthropic.EnforcedSpendLimitReachedError, 429)
+    app.dependency_overrides[get_client] = lambda: FakeClient(error=error)
+
+    client.post("/messages", json={"text": "AC in unit 4 is leaking"})
+
+    levels = [r.levelname for r in caplog.records if r.name == "guest_message_triage.app"]
+    assert levels == ["ERROR"]
