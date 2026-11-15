@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import anthropic
+import httpx2
 from pydantic import ValidationError
 
 from guest_message_triage.triage import TriageResult
@@ -32,3 +34,15 @@ def cut_off_reply():
         TriageResult.model_validate_json('{"tickets": [')
     except ValidationError as e:
         return e
+
+
+REQUEST = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+
+
+def api_error(cls, status):
+    """An SDK error for an HTTP status, e.g. api_error(anthropic.InternalServerError, 500)."""
+    return cls("fake", response=httpx2.Response(status, request=REQUEST), body=None)
+
+
+def connection_error():
+    return anthropic.APIConnectionError(request=REQUEST)
