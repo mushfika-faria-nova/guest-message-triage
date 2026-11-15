@@ -2,6 +2,8 @@
 services:
   db:
     image: postgres:18
+    # Starts again after a reboot, unless stopped with docker compose stop/down.
+    restart: unless-stopped
     environment:
       # Local-only credentials. In production these come from a secret store.
       POSTGRES_USER: triage
