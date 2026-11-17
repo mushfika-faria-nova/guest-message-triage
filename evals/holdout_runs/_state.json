@@ -1,0 +1,32 @@
+{
+  "metrics": [
+    {
+      "id": "needs_review",
+      "label": "needs_review",
+      "kind": "binary"
+    },
+    {
+      "id": "ticket_count",
+      "label": "ticket count",
+      "kind": "binary"
+    },
+    {
+      "id": "category",
+      "label": "category",
+      "kind": "binary"
+    },
+    {
+      "id": "urgency",
+      "label": "urgency",
+      "kind": "float",
+      "scale": 1
+    },
+    {
+      "id": "unit",
+      "label": "unit",
+      "kind": "float",
+      "scale": 1
+    }
+  ],
+  "harness_sha": "196df54836b05e15f75eb6f5e74222f4f03a4d922b4b5e272ea476138d6cdac9"
+}

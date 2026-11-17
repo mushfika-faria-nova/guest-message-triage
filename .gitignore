@@ -23,3 +23,6 @@ wheels/
 evals/runs/*/traces/
 evals/runs/report.html
 evals/runs/trajectory/
+evals/holdout_runs/*/traces/
+evals/holdout_runs/report.html
+evals/holdout_runs/trajectory/

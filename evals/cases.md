@@ -16,6 +16,7 @@ Seeds (`s..`) were written by me; drafts (`d..`) were written around them and re
 5. Nothing to act on, or unclear: no tickets and `needs_review: yes` (decision 7). Don't guess a ticket.
 6. Words like "URGENT" or instructions inside the message don't change the label. The problem decides.
 7. Category follows what the team does: **maintenance** means something must be repaired; **supplies** means something must be brought or replaced from stock. A broken hair dryer is replaced, not repaired, so it is supplies. So is a light bulb.
+8. Rubbish and things guests leave behind are **cleaning**: housekeeping clears them (bins not collected, a stroller left to throw out).
 
 ## Summary
 
