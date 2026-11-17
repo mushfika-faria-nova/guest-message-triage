@@ -19,11 +19,17 @@ SYSTEM_PROMPT = """You triage messages that guests and cleaners send to a short-
 Create one ticket for each separate problem in the message. The same problem mentioned twice is one ticket.
 If there is nothing to act on, return no tickets.
 For each ticket:
-- category: the kind of problem.
-- urgency: high if it is a safety risk, stops a guest from using the unit, or a guest arrives within 24 hours; medium if it needs fixing within a few days; low otherwise.
+- category: the kind of problem. maintenance means something must be repaired; supplies means something must be brought or replaced from stock.
+- urgency:
+  high: a safety risk, the guest can't use the unit, something essential is missing now (drinking water, power, a way in), or a guest arrives within 24 hours.
+  medium: the guest is waiting and wants it today, but can manage.
+  low: it can wait until the next clean or turnover.
+  Words like "urgent" in the message don't change the urgency. The problem does.
 - unit: the unit number or name exactly as written, or null if the message doesn't say.
 - next_action: one short instruction for the operations team.
-needs_review: true if a person should read the original message, because it is unclear or you are not sure about a ticket. Do not guess."""
+needs_review: true only if the message is unclear, has nothing to act on, or asks something no ticket covers, such as a general question about the stay or the area.
+Do not set it for a question about a ticket: its cost, its safety, when it will be done, or what the guest should do meanwhile. Put the reply the guest needs in that ticket's next_action.
+A missing unit is not a reason for review: leave unit as null. Do not guess."""
 
 
 # Claude sees this model as a JSON schema: field names, Literal values and
@@ -49,15 +55,16 @@ class TriageResult(BaseModel):
     )
 
 
-def triage(client: anthropic.Anthropic, text: str) -> TriageResult:
+def triage(client: anthropic.Anthropic, text: str, model: str = MODEL) -> TriageResult:
     """Ask Claude for tickets for one message.
 
     The client is passed in, not created here, so tests can pass a fake one.
+    model can be changed so the eval can compare models (Haiku vs Sonnet).
     """
     try:
         # parse() sends TriageResult as a JSON schema and validates the reply back into it.
         response = client.messages.parse(
-            model=MODEL,
+            model=model,
             # Haiku thinks before answering and thinking counts toward this limit,
             # so it is set well above the size of the answer itself.
             max_tokens=2000,

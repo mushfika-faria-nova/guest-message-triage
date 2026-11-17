@@ -18,3 +18,8 @@ wheels/
 # Tool caches
 .pytest_cache/
 .ruff_cache/
+
+# Eval output that is regenerated (results.jsonl and _state.json are kept)
+evals/runs/*/traces/
+evals/runs/report.html
+evals/runs/trajectory/

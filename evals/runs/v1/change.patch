@@ -1,0 +1,21 @@
+diff --git a/src/guest_message_triage/triage.py b/src/guest_message_triage/triage.py
+index c7d65ba..080b425 100644
+--- a/src/guest_message_triage/triage.py
++++ b/src/guest_message_triage/triage.py
+@@ -20,9 +20,13 @@ Create one ticket for each separate problem in the message. The same problem men
+ If there is nothing to act on, return no tickets.
+ For each ticket:
+-- category: the kind of problem.
+-- urgency: high if it is a safety risk, stops a guest from using the unit, or a guest arrives within 24 hours; medium if it needs fixing within a few days; low otherwise.
++- category: the kind of problem. maintenance means something must be repaired; supplies means something must be brought or replaced from stock.
++- urgency:
++  high: a safety risk, the guest can't use the unit, something essential is missing now (drinking water, power, a way in), or a guest arrives within 24 hours.
++  medium: the guest is waiting and wants it today, but can manage.
++  low: it can wait until the next clean or turnover.
++  Words like "urgent" in the message don't change the urgency. The problem does.
+ - unit: the unit number or name exactly as written, or null if the message doesn't say.
+ - next_action: one short instruction for the operations team.
+-needs_review: true if a person should read the original message, because it is unclear or you are not sure about a ticket. Do not guess."""
++needs_review: true if the message is unclear, has nothing to act on, or asks something no ticket covers (like checkout time or local tips). A question about a ticket, such as a charge or whether it is safe, does not need review: answer it in that ticket's next_action. Do not guess."""
+ 
+ 
