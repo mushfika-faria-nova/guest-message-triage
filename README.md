@@ -73,19 +73,30 @@ uv run pytest
 |---|---|---|---|
 | needs_review (40 cases) | 95.0% | 91.2% | 98.8% |
 | category (31 ticket cases) | 91.9% | 96.8% | 96.8% |
-| urgency (31) | 71.0% | 84.7% | 86.3% |
+| urgency (31) | 73.4% | 85.5% | 86.3% |
 | unit (31) | 100% | 100% | 100% |
 
 - v1 wrote my urgency, category and review rules into the prompt. v2 changed only the review rule's wording.
-- Baseline to v2, urgency: +15.3 points, 95% range +3.2 to +27.5 (paired over the same cases), so the gain is not noise.
+- Baseline to v2, urgency: +12.9 points, 95% range +0.7 to +25.1 (paired over the same cases). The range only just stays above zero, so the gain is real but its size is uncertain.
 - Cost: about $0.02 for 80 calls on Haiku (about 1,150 input and 70–590 output tokens per message).
-- The prompt was tuned on these 40 cases, so 86% is optimistic. A check on new cases is next.
+- The prompt was tuned on these 40 cases, so those numbers are optimistic. The check on 10 new messages, never used for tuning (`evals/holdout.md`):
+
+| field | 40 tuned cases (v2) | 10 held-out (v2) |
+|---|---|---|
+| needs_review | 98.8% | 90% |
+| category | 96.8% | 75% |
+| urgency | 86.3% | **56%** |
+| unit | 100% | 87.5% |
+
+- Why urgency drops: on the held-out set, guests ask for things without saying when ("need some more clean towels"), and the prompt rates those `low`. Every `medium` case in the tuned set had a time word ("this evening", "since morning"), so the prompt learned "medium needs a time" instead of "a guest who asks is waiting". The fix goes into the tuned set and a new prompt version, then a fresh held-out check; these 10 are not used for tuning.
+- With 8 ticket cases the held-out noise is wide (about ±30 points), so only the urgency gap, with three misses pointing the same way, is a clear finding. The category misses are h01 (no ticket made for passing a note to the cleaner) and h03 (a stroller to throw out, labelled cleaning, Haiku said other).
 
 Run it:
 
 ```sh
 uv run --env-file .env python evals/run.py --approve-harness --variant v3   # a new prompt version
 uv run --env-file .env python evals/run.py --regrade --variant v2           # re-grade saved answers, no API calls
+uv run --env-file .env python evals/run.py --cases holdout --variant v2     # held-out check, once per prompt version
 ```
 
 The runner stops if the cases, grader or prompt changed since the last approval, so scores from different setups never get mixed.

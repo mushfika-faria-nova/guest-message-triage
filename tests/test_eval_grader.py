@@ -10,7 +10,11 @@ sys.path.insert(0, str(EVALS))
 
 from run import grade, norm_unit  # noqa: E402
 
-CASES = [json.loads(line) for line in (EVALS / "cases.jsonl").read_text().splitlines()]
+CASES = [
+    json.loads(line)
+    for name in ("cases.jsonl", "holdout.jsonl")
+    for line in (EVALS / name).read_text().splitlines()
+]
 
 
 def test_expected_answer_scores_full_marks_on_every_case():

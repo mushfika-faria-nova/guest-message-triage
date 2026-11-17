@@ -4,6 +4,7 @@ Run from the repo root:
     uv run --env-file .env python evals/run.py --limit 3          # pilot
     uv run --env-file .env python evals/run.py                     # full run, baseline
     uv run --env-file .env python evals/run.py --variant v1 --model claude-sonnet-5-5
+    uv run --env-file .env python evals/run.py --cases holdout --variant v2   # held-out check
 
 Output goes to evals/runs/<variant>/:
     results.jsonl  one graded row per (case, rep), written as each one finishes
@@ -28,6 +29,9 @@ import anthropic
 from guest_message_triage.triage import MODEL, SYSTEM_PROMPT, triage
 
 EVALS = Path(__file__).parent
+# Two case sets: "main" is used to improve the prompt; "holdout" is never used for that,
+# only to check that scores on main hold up on new wording. Each has its own run folder.
+CASE_SETS = {"main": ("cases.jsonl", "runs"), "holdout": ("holdout.jsonl", "holdout_runs")}
 CASES = EVALS / "cases.jsonl"
 RUNS = EVALS / "runs"
 STATE = RUNS / "_state.json"
@@ -86,12 +90,10 @@ def grade(expected, output):
     exp, got = expected["tickets"], output["tickets"]
     scores["ticket_count"] = int(len(got) == len(exp))
     scores["category"] = int(sorted(t["category"] for t in got) == sorted(t["category"] for t in exp))
-    # Urgency is checked per ticket, matched by category, so two tickets in a
-    # different order still count.
-    scores["urgency"] = share_matched(
-        [(t["category"], t["urgency"]) for t in exp], [(t["category"], t["urgency"]) for t in got]
-    )
-    # Unit is checked on its own, so a wrong category isn't counted a second time here.
+    # Urgency and unit are each checked on their own, in any ticket order, so a wrong
+    # category isn't counted a second time here. (Trade-off: if two tickets swap their
+    # urgencies, it still counts as right.)
+    scores["urgency"] = share_matched([t["urgency"] for t in exp], [t["urgency"] for t in got])
     scores["unit"] = share_matched(
         [norm_unit(t["unit"]) for t in exp], [norm_unit(t["unit"]) for t in got]
     )
@@ -246,7 +248,13 @@ def main():
     ap.add_argument("--timeout-s", type=float, default=150, help="wall-clock ceiling per case")
     ap.add_argument("--approve-harness", action="store_true")
     ap.add_argument("--regrade", action="store_true", help="re-grade saved outputs, no API calls")
+    ap.add_argument("--cases", choices=CASE_SETS, default="main")
     args = ap.parse_args()
+    global CASES, RUNS, STATE
+    cases_file, runs_dir = CASE_SETS[args.cases]
+    CASES, RUNS = EVALS / cases_file, EVALS / runs_dir
+    STATE = RUNS / "_state.json"
+    HARNESS_FILES[1] = CASES
     if not re.fullmatch(r"baseline|v\d+", args.variant):
         sys.exit("variant must be baseline or v<N> (the report ignores other names)")
     if args.regrade:
