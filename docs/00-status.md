@@ -12,7 +12,7 @@ Last updated: 2026-11-18 · Size: Small · Current phase: 4 of 6, eval and cost
 | 1 | FastAPI skeleton: health check, `POST /messages` with input validation, tests | ✅ done | first commit |
 | 2 | Claude call: message → one ticket per problem, unclear messages marked for review | ✅ done | PR #1 |
 | 3 | Save messages and tickets in Postgres | ✅ done | PR #2 |
-| 4 | Eval set and cost per message | 🔄 in progress (eval and held-out check done; urgency fix and model comparison next) | PR #4, branch `feat/holdout` |
+| 4 | Eval set and cost per message | 🔄 in progress (eval, held-out check and urgency fix done; fresh held-out and model comparison next) | PRs #4, #5, branch `feat/urgency-v3` |
 | 5 | Production basics: failure handling, Dockerfile, structured logs, CI | 🔄 failure handling done (PR #3); Dockerfile, logs, CI not started | |
 | 6 | Bulk mode (Message Batches API) and one agent step with two tools | ⬜ not started | |
 
@@ -24,14 +24,14 @@ Last updated: 2026-11-18 · Size: Small · Current phase: 4 of 6, eval and cost
 - The message and its tickets are saved in Postgres in one transaction (test against a real test database passes, and fails when the save is removed)
 - Tables are created by an Alembic migration; `alembic check` shows the models and the database match
 - A cut-off, refused or invalid Claude reply goes to review instead of becoming a ticket (2 tests)
-- An eval of 40 labelled messages scores the prompt per field: needs_review 99%, category 97%, urgency 86%, unit 100% (see README)
+- An eval of 46 labelled messages scores the prompt per field: needs_review 99%, category 97%, urgency 93%, unit 100% (prompt v3, see README)
 - If Claude can't be reached, is rate-limited, rejects the key or the spend limit is hit, the message is still saved for review and the API returns 200 (4 cases tested; spend limit logged as an error, tested)
 
 ## In progress
-Phase 4: held-out check (branch `feat/holdout`).
+Phase 4: urgency fix, prompt v3 (branch `feat/urgency-v3`).
 
 ## Next
-Urgency fix: add guest requests with no time given to the tuned set, prompt v3 ("a guest who asks is waiting"), then a fresh held-out check. Haiku vs Sonnet on the same eval, with cost per message.
+10 fresh held-out messages to check v3 (the first held-out set is no longer clean). Haiku vs Sonnet on the same eval, with cost per message.
 
 ## Open decisions
 - Which model is the default (Haiku or Sonnet). Decided by the eval in phase 4, on accuracy and cost.
@@ -41,7 +41,7 @@ Urgency fix: add guest requests with no time given to the tuned set, prompt v3 (
 - A `guest_request` category: luggage, parcels and general questions now land in `other` or in review.
 
 ## Not built yet / known limits
-- On 10 new messages, urgency is right 56% of the time (86% on the tuned set): requests with no time given are rated too low. `next_action` text is not graded.
+- v3's urgency (93% on 46 tuned cases) is not yet checked on clean held-out messages. Paperwork requests are rated `medium` (labelled `low`). `next_action` text is not graded.
 - An outage only shows in the logs (the API still returns 200). Logs are plain text; structured logs and alerts come later in phase 5.
 - If the database is down, the request fails with 500 and the message is lost.
 - No auth, no Docker image for the service, no CI.

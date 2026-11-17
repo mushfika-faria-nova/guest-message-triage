@@ -1,8 +1,8 @@
 # Eval cases: guest-message-triage
 
-40 synthetic messages with the answer I expect for each. The source of truth is `cases.jsonl`; this file is the same data for reading.
+46 synthetic messages with the answer I expect for each. The source of truth is `cases.jsonl`; this file is the same data for reading.
 
-Seeds (`s..`) were written by me; drafts (`d..`) were written around them and reviewed by me.
+Seeds (`s..`) were written by me; drafts (`d..`) were written around them and reviewed by me. d41–d46 were added after the held-out check: requests with no time word (two of them low), so urgency is tested without time clues.
 
 ## Labelling rules
 
@@ -62,6 +62,12 @@ Seeds (`s..`) were written by me; drafts (`d..`) were written around them and re
 | d38 | single | supplies/low/12B | no |
 | d39 | single | cleaning/high/Lake House | no |
 | d40 | question_mix | maintenance/high/5 | no |
+| d41 | no_time | supplies/medium/none | no |
+| d42 | no_time | supplies/medium/7A | no |
+| d43 | no_time | cleaning/medium/12B | no |
+| d44 | no_time | maintenance/medium/9B | no |
+| d45 | no_time, low | maintenance/low/3C | no |
+| d46 | no_time, low | maintenance/low/5 | no |
 
 ## Messages
 
@@ -424,4 +430,58 @@ The balcony door in unit 5 doesn't lock properly. Is it ok to leave it like this
 ````
 
 - tickets: maintenance/high/5
+- needs_review: no
+
+### d41
+
+````text
+can we have an extra blanket please
+````
+
+- tickets: supplies/medium/none
+- needs_review: no
+
+### d42
+
+````text
+unit 7A: we ran out of dish soap
+````
+
+- tickets: supplies/medium/7A
+- needs_review: no
+
+### d43
+
+````text
+please send someone to take out the kitchen bin in 12B, its full
+````
+
+- tickets: cleaning/medium/12B
+- needs_review: no
+
+### d44
+
+````text
+the tv in 9B has no sound
+````
+
+- tickets: maintenance/medium/9B
+- needs_review: no
+
+### d45
+
+````text
+the wardrobe door in 3C squeaks a little, thought you should know
+````
+
+- tickets: maintenance/low/3C
+- needs_review: no
+
+### d46
+
+````text
+one of the hooks behind the bathroom door in unit 5 is a bit loose, no need to come now
+````
+
+- tickets: maintenance/low/5
 - needs_review: no

@@ -1,0 +1,5 @@
+--- a/src/guest_message_triage/triage.py
++++ b/src/guest_message_triage/triage.py
+@@ -24,1 +24,1 @@
+-  medium: the guest is waiting and wants it today, but can manage.
++  medium: the guest is waiting and wants it today, but can manage. A guest asking for something during their stay is waiting for it, even without saying when.
