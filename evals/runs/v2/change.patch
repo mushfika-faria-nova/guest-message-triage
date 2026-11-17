@@ -1,0 +1,7 @@
+--- a/src/guest_message_triage/triage.py
++++ b/src/guest_message_triage/triage.py
+@@ -30,1 +30,3 @@
+-needs_review: true if the message is unclear, has nothing to act on, or asks something no ticket covers (like checkout time or local tips). A question about a ticket, such as a charge or whether it is safe, does not need review: answer it in that ticket's next_action. Do not guess."""
++needs_review: true only if the message is unclear, has nothing to act on, or asks something no ticket covers, such as a general question about the stay or the area.
++Do not set it for a question about a ticket: its cost, its safety, when it will be done, or what the guest should do meanwhile. Put the reply the guest needs in that ticket's next_action.
++A missing unit is not a reason for review: leave unit as null. Do not guess."""
