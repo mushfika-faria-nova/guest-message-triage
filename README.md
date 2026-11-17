@@ -67,9 +67,11 @@ uv run pytest
 
 ## Evaluation
 
-40 synthetic guest and cleaner messages, each labelled with the tickets I expect (`evals/cases.md`, with the labelling rules at the top). Each message goes through the real `triage()` twice on Claude Haiku, and code grades every field against the label.
+Synthetic guest and cleaner messages, each labelled with the tickets I expect (`evals/cases.md`, with the labelling rules at the top). Each message goes through the real `triage()` twice on Claude Haiku, and code grades every field against the label. The current prompt is v3.
 
-| field | baseline prompt | v1 | v2 (current) |
+**Round 1: the first 40 cases**
+
+| field | baseline prompt | v1 | v2 |
 |---|---|---|---|
 | needs_review (40 cases) | 95.0% | 91.2% | 98.8% |
 | category (31 ticket cases) | 91.9% | 96.8% | 96.8% |
@@ -77,9 +79,11 @@ uv run pytest
 | unit (31) | 100% | 100% | 100% |
 
 - v1 wrote my urgency, category and review rules into the prompt. v2 changed only the review rule's wording.
-- Baseline to v2, urgency: +12.9 points, 95% range +0.7 to +25.1 (paired over the same cases). The range only just stays above zero, so the gain is real but its size is uncertain.
-- Cost: about $0.02 for 80 calls on Haiku (about 1,150 input and 70–590 output tokens per message).
-- The prompt was tuned on these 40 cases, so those numbers are optimistic. The check on 10 new messages, never used for tuning (`evals/holdout.md`):
+- Baseline to v2, urgency: +12.9 points, 95% range +0.7 to +25.1 (paired over the same cases).
+
+**Round 2: the held-out check found a gap**
+
+10 new messages, never used for tuning (`evals/holdout.md`), run on v2:
 
 | field | 40 tuned cases (v2) | 10 held-out (v2) |
 |---|---|---|
@@ -88,15 +92,30 @@ uv run pytest
 | urgency | 86.3% | **56%** |
 | unit | 100% | 87.5% |
 
-- Why urgency drops: on the held-out set, guests ask for things without saying when ("need some more clean towels"), and the prompt rates those `low`. Every `medium` case in the tuned set had a time word ("this evening", "since morning"), so the prompt learned "medium needs a time" instead of "a guest who asks is waiting". The fix goes into the tuned set and a new prompt version, then a fresh held-out check; these 10 are not used for tuning.
-- With 8 ticket cases the held-out noise is wide (about ±30 points), so only the urgency gap, with three misses pointing the same way, is a clear finding. The category misses are h01 (no ticket made for passing a note to the cleaner) and h03 (a stroller to throw out, labelled cleaning, Haiku said other).
+On the held-out set, guests ask for things without saying when ("need some more clean towels"), and v2 rated those `low`. Every `medium` case in the tuned set had a time word ("this evening", "since morning"), so the prompt had learned "medium needs a time" instead of "a guest who asks is waiting".
+
+**Round 3: the fix (v3)**
+
+I added 6 cases to the tuned set: requests with no time word, written fresh (not copies of the held-out ones), two of them `low` so that calling everything `medium` doesn't win. v3 adds one sentence to the medium rule: "A guest asking for something during their stay is waiting for it, even without saying when."
+
+| field (46 cases) | v2 | v3 |
+|---|---|---|
+| needs_review | 98.9% | 98.9% |
+| category | 97.3% | 97.3% |
+| urgency (37 ticket cases) | 80.4% | **93.2%** |
+| unit | 100% | 100% |
+
+- Only urgency moved, as expected from a one-line change. All 10 cases that changed moved the way the new sentence predicts; the two `low` counterweights stayed `low`. The paired 95% range is −0.3 to +25.9, so 37 cases don't prove the size of the gain on their own.
+- Held-out set on v3: urgency 94% (was 56% on v2). This is **not a clean test**: I wrote the new tuned cases knowing what failed there. A fresh held-out set is next.
+- Cost: about $0.02 per run of 92 calls on Haiku (about 1,150 input and 70–590 output tokens per message).
+- Known misses on v3: an invoice correction is rated `medium` (I label paperwork `low`: nothing goes wrong if it waits); drinking water is `high` in only one of two runs.
 
 Run it:
 
 ```sh
-uv run --env-file .env python evals/run.py --approve-harness --variant v3   # a new prompt version
-uv run --env-file .env python evals/run.py --regrade --variant v2           # re-grade saved answers, no API calls
-uv run --env-file .env python evals/run.py --cases holdout --variant v2     # held-out check, once per prompt version
+uv run --env-file .env python evals/run.py --approve-harness --variant v4   # a new prompt version
+uv run --env-file .env python evals/run.py --regrade --variant v3           # re-grade saved answers, no API calls
+uv run --env-file .env python evals/run.py --cases holdout --variant v3     # held-out check, once per prompt version
 ```
 
 The runner stops if the cases, grader or prompt changed since the last approval, so scores from different setups never get mixed.

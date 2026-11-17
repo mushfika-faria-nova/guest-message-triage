@@ -11,8 +11,8 @@ Guests and cleaners report problems in free text, in any form: "AC leaking in 4,
 | ID | It must… | Proven by | Phase |
 |---|---|---|---|
 | R-1 | Accept a message of 1 to 2000 characters and reject empty or missing text, without calling Claude | `tests/test_app.py` (2 tests) | 1 |
-| R-2 | Turn a message into one ticket per problem: category, urgency, unit, next action | eval (`evals/`): category 97%, urgency 86%, unit 100% on 31 ticket cases | 2 |
-| R-3 | Mark unclear messages, and messages with nothing to act on, for a person to review instead of guessing | `tests/test_triage.py`; eval: needs_review 99% on 40 cases | 2 |
+| R-2 | Turn a message into one ticket per problem: category, urgency, unit, next action | eval (`evals/`): category 97%, urgency 93%, unit 100% on 37 ticket cases (prompt v3) | 2 |
+| R-3 | Mark unclear messages, and messages with nothing to act on, for a person to review instead of guessing | `tests/test_triage.py`; eval: needs_review 99% on 46 cases | 2 |
 | R-4 | Save every message and its tickets; save nothing for rejected input | `tests/test_app.py::test_message_and_tickets_are_saved`, `test_invalid_message_is_not_saved` (real Postgres test database) | 3 |
 | R-5 | Record tokens and cost for every message | test on the usage log | 4 |
 | R-6 | Triage a file of hundreds of messages in one run, with the total cost of the run | run on a synthetic CSV, results matched to inputs | 6 |

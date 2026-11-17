@@ -22,7 +22,7 @@ For each ticket:
 - category: the kind of problem. maintenance means something must be repaired; supplies means something must be brought or replaced from stock.
 - urgency:
   high: a safety risk, the guest can't use the unit, something essential is missing now (drinking water, power, a way in), or a guest arrives within 24 hours.
-  medium: the guest is waiting and wants it today, but can manage.
+  medium: the guest is waiting and wants it today, but can manage. A guest asking for something during their stay is waiting for it, even without saying when.
   low: it can wait until the next clean or turnover.
   Words like "urgent" in the message don't change the urgency. The problem does.
 - unit: the unit number or name exactly as written, or null if the message doesn't say.
