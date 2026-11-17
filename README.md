@@ -65,13 +65,38 @@ docker compose exec db createdb -U triage triage_test   # once
 uv run pytest
 ```
 
+## Evaluation
+
+40 synthetic guest and cleaner messages, each labelled with the tickets I expect (`evals/cases.md`, with the labelling rules at the top). Each message goes through the real `triage()` twice on Claude Haiku, and code grades every field against the label.
+
+| field | baseline prompt | v1 | v2 (current) |
+|---|---|---|---|
+| needs_review (40 cases) | 95.0% | 91.2% | 98.8% |
+| category (31 ticket cases) | 91.9% | 96.8% | 96.8% |
+| urgency (31) | 71.0% | 84.7% | 86.3% |
+| unit (31) | 100% | 100% | 100% |
+
+- v1 wrote my urgency, category and review rules into the prompt. v2 changed only the review rule's wording.
+- Baseline to v2, urgency: +15.3 points, 95% range +3.2 to +27.5 (paired over the same cases), so the gain is not noise.
+- Cost: about $0.02 for 80 calls on Haiku (about 1,150 input and 70–590 output tokens per message).
+- The prompt was tuned on these 40 cases, so 86% is optimistic. A check on new cases is next.
+
+Run it:
+
+```sh
+uv run --env-file .env python evals/run.py --approve-harness --variant v3   # a new prompt version
+uv run --env-file .env python evals/run.py --regrade --variant v2           # re-grade saved answers, no API calls
+```
+
+The runner stops if the cases, grader or prompt changed since the last approval, so scores from different setups never get mixed.
+
 ## Plan
 
 - Claude structured output: the reply must match a Pydantic model (done)
 - One ticket per problem; unclear messages are marked for a person to review instead of a guess (done)
 - Save messages and tickets in Postgres (done)
-- Failure handling: Claude errors, cut-off or invalid replies
-- An eval set of labelled synthetic messages, with accuracy per field
+- Failure handling: Claude errors, cut-off or invalid replies (done)
+- An eval set of labelled synthetic messages, with accuracy per field (done, see Evaluation above)
 - Cost per message, comparing models
 - Bulk mode: hundreds of messages in one run, through the Message Batches API
 - One agent step: Claude looks up the unit and the booking before setting urgency
